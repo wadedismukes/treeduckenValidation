@@ -1,0 +1,47 @@
+---
+title: "R Notebook"
+output: html_notebook
+author: "Wade Dismukes"
+---
+
+The following are validation tests of the `treeducken` package with accompanying figures.
+
+## Testing Species Tree Simulation 
+
+### Set number of tips
+```{r}
+library(treeducken)
+library(treeduckenValidation)
+reps <- 10000
+speciation_rates <- c(2.0, 4.0)
+extinction_rates <- speciation_rates / 2
+tip_numbers <- c(40, 400)
+speciation_test_1_df <- matrix(nrow = reps, ncol = 8)
+k <- 1
+for(i in 1:length(speciation_rates)){
+    for(j in 1:length(tip_numbers)) {
+        speciation_test_1_df[1:reps,k] <- get_sptree_leaf_number_dist(speciation_rates[i],
+                                                                extinction_rates[i],
+                                                                tip_numbers[j],
+                                                                reps = reps)
+        k <- k + 1
+        treesim_trees <- TreeSim::sim.bd.taxa(n = tip_numbers[j],
+                                                         lambda = speciation_rates[i],
+                                                         mu = extinction_rates[i],
+                                                         numbsim = reps) 
+        for(t in 1:length(treesim_trees)) {
+            speciation_test_1_df[t, k] <- max(ape::node.depth.edgelength(treesim_trees[[t]]))
+        }
+        k <- k + 1
+    }
+ 
+    
+}
+```
+
+
+```{r}
+
+
+```
+### Set time

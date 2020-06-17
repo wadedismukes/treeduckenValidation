@@ -1,0 +1,25 @@
+{
+    "id": "FF3C4018",
+    "path": "~/projects/r_projects/treeduckenValidation/R/locus_test.R",
+    "project_path": "R/locus_test.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1591885439753.0,
+    "source_on_save": false,
+    "relative_order": 4,
+    "properties": {
+        "tempName": "Untitled1",
+        "cursorPosition": "8,67",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1591981009,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1591981009691,
+    "read_only": false,
+    "read_only_alternatives": []
+}

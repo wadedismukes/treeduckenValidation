@@ -1,0 +1,26 @@
+{
+    "id": "80365B16",
+    "path": "~/projects/r_projects/treeduckenValidation/vignettes/validation_tests.Rmd",
+    "project_path": "vignettes/validation_tests.Rmd",
+    "type": "r_markdown",
+    "hash": "0",
+    "contents": "",
+    "dirty": true,
+    "created": 1591982117991.0,
+    "source_on_save": false,
+    "relative_order": 7,
+    "properties": {
+        "tempName": "Untitled1",
+        "chunk_output_type": "inline",
+        "cursorPosition": "40,0",
+        "scrollLine": "6"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1591995797,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1592008527452,
+    "read_only": false,
+    "read_only_alternatives": []
+}

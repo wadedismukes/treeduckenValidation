@@ -1,0 +1,37 @@
+compare_sptree_mean_leaf_number <- function(sbr, sdr, time, reps){
+    speciesTrees <- treeducken::sim_sptree_bdp_time(sbr = sbr,
+                                                   sdr = sdr,
+                                                   numbsim = reps,
+                                                   t = time)
+    expectedValue <- treeducken::calculate_expected_leaves_sptree(lambda = sbr,
+                                                                  mu = sdr,
+                                                                  t = time)
+    vectorOfNumberSpecies <- vector(length = 10000)
+    for(i in 1:10000){
+        num_extant <- length(speciesTrees[[i]]$tip.label)
+        vectorOfNumberSpecies[i] <- num_extant
+    }
+    print(mean(vectorOfNumberSpecies) - expectedValue)
+    (mean(vectorOfNumberSpecies) - expectedValue) / sqrt(var(vectorOfNumberSpecies))
+}
+
+compare_sptree_node_depth <- function(sbr, sdr, num_tips, reps){
+    speciesTrees <- treeducken::sim_sptree_bdp(sbr = sbr,
+                                               sdr = sdr,
+                                               numbsim = reps,
+                                               n_tips = num_tips)
+    speciesTrees_TreeSim <- TreeSim::sim.bd.taxa(num_tips, reps, sbr, sdr)
+    expectedValue <- treeducken::estimate_node_heights(lambda = sbr,
+                                                       mu = sdr,
+                                                       n = num_tips)
+    vectorOfNodeDepths <- vector(length = 10000)
+    vectorOfNodeDepthsTreeSim <- vector(length = 10000)
+    for(i in 1:10000){
+        nodeDepth <- max(ape::node.depth.edgelength(speciesTrees[[i]])) + speciesTrees[[i]]$root.edge
+        nodeDepth_TreeSim <- max(ape::node.depth.edgelength(speciesTrees_TreeSim[[i]]))
+        vectorOfNodeDepths[i] <- nodeDepth
+        vectorOfNodeDepthsTreeSim[i] <- nodeDepth_TreeSim
+    }
+    ((mean(vectorOfNodeDepths) / sqrt(var(vectorOfNodeDepths))) - (mean(vectorOfNodeDepthsTreeSim)) / sqrt(var(vectorOfNodeDepthsTreeSim)))
+    #(mean(vectorOfNodeDepths) - expectedValue) / sqrt(var(vectorOfNodeDepths))
+}
