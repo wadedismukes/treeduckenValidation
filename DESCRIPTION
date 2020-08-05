@@ -1,13 +1,14 @@
 Package: treeduckenValidation
 Type: Package
-Title: Validates the treeducken package
+Title: Validatation tests for the treeducken package
 Version: 0.1.0
 Author: Wade Dismukes
 Maintainer: Wade Dismukes <wade.dismukes@gmail.com>
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+License: GNU GPL v. 2.0
 Encoding: UTF-8
 Depends:
     treeducken
+    ggplot2
 LazyData: true

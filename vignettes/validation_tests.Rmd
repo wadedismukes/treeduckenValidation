@@ -3,7 +3,12 @@ title: "R Notebook"
 output: html_notebook
 author: "Wade Dismukes"
 ---
-
+```{r setup, include=FALSE}
+library(treeducken)
+library(reticulate)
+library(treeduckenValidation)
+reticulate::use_python("/usr/bin/python3")
+```
 The following are validation tests of the `treeducken` package with accompanying figures.
 
 ## Testing Species Tree Simulation 
@@ -12,7 +17,7 @@ The following are validation tests of the `treeducken` package with accompanying
 ```{r}
 library(treeducken)
 library(treeduckenValidation)
-reps <- 10000
+reps <- 1000
 speciation_rates <- c(2.0, 4.0)
 extinction_rates <- speciation_rates / 2
 tip_numbers <- c(40, 400)
@@ -37,7 +42,149 @@ for(i in 1:length(speciation_rates)){
  
     
 }
+treesim_trees <- NULL
+```
+
+```{r}
+colnames(speciation_test_1_df) <- c("spec_rate 2.0, 40 tips - TD",
+                                    "spec_rate 2.0, 40 tips - TreeSim",
+                                    "spec_rate 2.0, 400 tips - TD",
+                                    "spec_rate 2.0, 400 tips - TreeSim",
+                                    "spec_rate 4.0, 40 tips - TD",
+                                    "spec_rate 4.0, 40 tips - TreeSim",
+                                    "spec_rate 4.0, 400 tips - TD",
+                                    "spec_rate 4.0, 400 tips - TreeSim")
+speciation_test_1_df <- as.data.frame(speciation_test_1_df)
+melted_df <- reshape2::melt(speciation_test_1_df)
+spec_rate_and_tips <- rep(c("2.0, 40",
+                             "2.0, 400",
+                             "4.0, 40",
+                             "4.0, 400"),
+                             each = nrow(melted_df)/4, length.out = nrow(melted_df))
+
+melted_df$"spec_rate_and_tips" <- factor(spec_rate_and_tips)
+
+
+simulator_type <- rep(c("treeducken", "TreeSim"), each = nrow(melted_df)/8)
+length(simulator_type)
+simulator_type <- c(simulator_type, simulator_type, simulator_type, simulator_type)
+melted_df$"simulator" <- simulator_type
+```
+
+```{r}
+library(ggplot2)
+ggplot(data = melted_df, aes(x = factor(spec_rate_and_tips), y = value, fill = simulator)) + geom_violin() + theme_bw() + xlab("Speciation Rate and Tip Number") + ylab("Node Depth") )
+```
+
+### Set time
+
+
+```{r}
+reps <- 1000
+speciation_rates <- c(2.0, 4.0)
+extinction_rates <- speciation_rates / 2
+sim_age <- c(2.0, 4.0)
+speciation_test_2_df <- matrix(nrow = reps, ncol = 8)
+k <- 1
+for(i in 1:length(speciation_rates)){
+    for(j in 1:length(sim_age)) {
+        speciation_test_2_df[1:reps,k] <- get_sptree_leaf_number_dist_time(speciation_rates[i],
+                                                                extinction_rates[i],
+                                                                time = sim_age[j],
+                                                                reps = reps)
+        k <- k + 1
+        treesim_trees <- TreeSim::sim.bd.age(age = sim_age[j],
+                                              lambda = speciation_rates[i],
+                                              mu = extinction_rates[i],
+                                              numbsim = reps) 
+        for(t in 1:length(treesim_trees)) {
+            speciation_test_2_df[t, k] <- length(treesim_trees[[t]][2])
+        }
+        k <- k + 1
+    }
+}
+treesim_trees <- NULL
+```
+
+```{r}
+colnames(speciation_test_2_df) <- c("spec_rate 2.0, time 2.0 - TD",
+                                    "spec_rate 2.0, time 2.0 - TreeSim",
+                                    "spec_rate 2.0, time 4.0 - TD",
+                                    "spec_rate 2.0, time 4.0 - TreeSim",
+                                    "spec_rate 4.0, time 2.0 - TD",
+                                    "spec_rate 4.0, time 2.0 - TreeSim",
+                                    "spec_rate 4.0, time 4.0 - TD",
+                                    "spec_rate 4.0, time 4.0 - TreeSim")
+speciation_test_1_df <- as.data.frame(speciation_test_2_df)
+melted_df_2 <- reshape2::melt(speciation_test_2_df)
+spec_rate_and_tips <- rep(c("2.0, 2.0",
+                             "2.0, 4.0",
+                             "4.0, 2.0",
+                             "4.0, 4.0"),
+                             each = nrow(melted_df_2)/4, length.out = nrow(melted_df_2))
+
+melted_df_2$"spec_rate_and_tips" <- factor(spec_rate_and_tips)
+
+
+simulator_type <- rep(c("treeducken", "TreeSim"), each = nrow(melted_df)/8)
+length(simulator_type)
+simulator_type <- c(simulator_type, simulator_type, simulator_type, simulator_type)
+melted_df_2$"simulator" <- simulator_type
+```
+
+### Locus Tree Test
+```{r}
+species_tree_depth <- 2.0
+mu <- 0.5
+lambda <- 1.0
+gene_birth_rates <- c(0.1, 0.15, 0.2, 0.25, 0.3)
+gene_death_rates <- c(0.05, 0.075, 0.01, 0.125, 0.15)
+replicate_loci <- 1000
+locus_tree_test_df <- matrix(nrow = replicate_loci, ncol = length(gene_death_rates) * length(gene_birth_rates))
+k <- 1
+for(i in 1:length(gene_birth_rates)) {
+    for(j in 1:length(gene_death_rates)) {
+        locus_tree_test_df[1:replicate_loci, k] <- treeduckenValidation::compare_locustree_mean_leaf_number(
+                                                                 gene_birth_rate = gene_birth_rates[i],
+                                                                 gene_death_rate = gene_death_rates[j],
+                                                                 fixed_depth = species_tree_depth,
+                                                                 reps = replicate_loci)
+        k <- k + 1
+    }
+}
+
 ```
 
 
-### Set time
+
+
+```{r}
+colnames(speciation_test_2_df) <- c("spec_rate 2.0, time 2.0 - TD",
+                                    "spec_rate 2.0, time 2.0 - TreeSim",
+                                    "spec_rate 2.0, time 4.0 - TD",
+                                    "spec_rate 2.0, time 4.0 - TreeSim",
+                                    "spec_rate 4.0, time 2.0 - TD",
+                                    "spec_rate 4.0, time 2.0 - TreeSim",
+                                    "spec_rate 4.0, time 4.0 - TD",
+                                    "spec_rate 4.0, time 4.0 - TreeSim")
+speciation_test_1_df <- as.data.frame(speciation_test_2_df)
+melted_df_2 <- reshape2::melt(speciation_test_2_df)
+spec_rate_and_tips <- rep(c("2.0, 2.0",
+                             "2.0, 4.0",
+                             "4.0, 2.0",
+                             "4.0, 4.0"),
+                             each = nrow(melted_df_2)/4, length.out = nrow(melted_df_2))
+
+melted_df_2$"spec_rate_and_tips" <- factor(spec_rate_and_tips)
+
+
+simulator_type <- rep(c("treeducken", "TreeSim"), each = nrow(melted_df)/8)
+length(simulator_type)
+simulator_type <- c(simulator_type, simulator_type, simulator_type, simulator_type)
+melted_df_2$"simulator" <- simulator_type
+```
+
+
+```{python}
+
+```

@@ -1,33 +1,48 @@
-get_sptree_leaf_number_dist_time <- function(sbr, sdr, time, reps){
-    speciesTrees <- treeducken::sim_sptree_bdp_time(sbr = sbr,
-                                                   sdr = sdr,
+gsa_test_data_generation <- function(sbr, sdr, number_tips, reps) {
+    # simulate reps with treeducken
+    rates_vec <- cbind(sbr, sdr)
+    gsa_sptree_tips <- matrix(nrow = 10000, ncol = rates_vec * 2)
+    for(i in seq_len(nrow(rates_vec))) {
+        td_species_trees <- treeducken::sim_sptree_bdp(sbr = rates_vec[i, 1],
+                                                   sdr = rates_vec[i, 2],
+                                                   n_tips = number_tips,
                                                    numbsim = reps,
-                                                   t = time)
-    expectedValue <- treeducken::calculate_expected_leaves_sptree(lambda = sbr,
-                                                                  mu = sdr,
-                                                                  t = time)
-    vectorOfNumberSpecies <- vector(length = 10000)
-    for(i in 1:10000){
-        num_extant <- length(speciesTrees[[i]]$tip.label)
-        vectorOfNumberSpecies[i] <- num_extant
+                                                   time_to_sim = time)
+        ts_species_trees <- TreeSim::sim.bd.taxa(n = number_tips,
+                                                numbsim = reps,
+                                                lambda =  rates_vec[i, 1],
+                                                mu = rates_vec[i, 2])
+        # calculate number of host tips
+        gsa_sptree_tips[, i] <- ape::Ntip.multiPhylo(td_species_trees)
+        gsa_sptree_tips[, i + nrow(rates_vec)] <- ape::Ntip.multiPhylo(ts_species_trees)
     }
-    vectorOfNumberSpecies
+    # return a dataframe of host tips (reps x (length(hbr) + length(hdr))
+    gsa_sptree_tips
 }
 
-get_sptree_leaf_number_dist <- function(sbr, sdr, num_tips, reps){
-    speciesTrees <- treeducken::sim_sptree_bdp(sbr = sbr,
-                                               sdr = sdr,
-                                               numbsim = reps,
-                                               n_tips = num_tips)
-    expectedValue <- treeducken::estimate_node_heights(lambda = sbr,
-                                                       mu = sdr,
-                                                       n = num_tips)
-    vectorOfNodeDepths <- vector(length = reps)
-    for(i in 1:reps){
-        nodeDepth <- max(ape::node.depth.edgelength(speciesTrees[[i]])) + speciesTrees[[i]]$root.edge
-        vectorOfNodeDepths[i] <- nodeDepth
+gsa_test_plot <- function(gsa_test_dataframe) {
+    # plot boxplots? with the TreeSim plots next to the treeducken ones
+}
+
+
+ssa_test_data_generation <- function(sbr, sdr, time, reps) {
+    # simulate the reps for the 10 pairs of birth and death rates
+    # calculate number of tips
+    # return a dataframe (10 columns, 10000 rows)
+    rates_vec <- cbind(sbr, sdr)
+    ssa_sptree_node_depths <- matrix(nrow = 10000, ncol = rates_vec)
+    for(i in seq_len(nrow(rates_vec))) {
+        trees <- treeducken::sim_sptree_bdp_time(sbr = rates_vec[i, 1],
+                                                 sdr = rates_vec[i, 2],
+                                                 numbsim = reps,
+                                                 t = time)
+        # calculate number of host tips
+        ssa_sptree_node_depths[, i] <- max(ape::node.depth.edgelength(trees))
     }
-    vectorOfNodeDepths
-    #((mean(vectorOfNodeDepths) / sqrt(var(vectorOfNodeDepths))) - (mean(vectorOfNodeDepthsTreeSim)) / sqrt(var(vectorOfNodeDepthsTreeSim)))
-    #(mean(vectorOfNodeDepths) - expectedValue) / sqrt(var(vectorOfNodeDepths))
+    # return a dataframe of host tips (reps x (length(hbr) + length(hdr))
+    ssa_sptree_node_depths
+}
+
+ssa_test_plot <- function(ssa_test_dataframe, expectation) {
+    # plot with lines indicating the expectation
 }
