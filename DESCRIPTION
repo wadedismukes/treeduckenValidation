@@ -10,5 +10,4 @@ License: GNU GPL v. 2.0
 Encoding: UTF-8
 Depends:
     treeducken
-    ggplot2
 LazyData: true

@@ -4,187 +4,238 @@ output: html_notebook
 author: "Wade Dismukes"
 ---
 ```{r setup, include=FALSE}
-library(treeducken)
-library(reticulate)
 library(treeduckenValidation)
-reticulate::use_python("/usr/bin/python3")
+library(ggplot2)
+library(khroma)
 ```
 The following are validation tests of the `treeducken` package with accompanying figures.
 
-## Testing Species Tree Simulation 
 
-### Set number of tips
+
+## Testing species tree simulation 
+
+### GSA tests
+
 ```{r}
-library(treeducken)
-library(treeduckenValidation)
+# first decide on parameters
+sbr <- seq(from= 1, to = 6)
+sdr <- sbr / 4
+num_tips <- 50
 reps <- 1000
-speciation_rates <- c(2.0, 4.0)
-extinction_rates <- speciation_rates / 2
-tip_numbers <- c(40, 400)
-speciation_test_1_df <- matrix(nrow = reps, ncol = 8)
-k <- 1
-for(i in 1:length(speciation_rates)){
-    for(j in 1:length(tip_numbers)) {
-        speciation_test_1_df[1:reps,k] <- get_sptree_leaf_number_dist(speciation_rates[i],
-                                                                extinction_rates[i],
-                                                                tip_numbers[j],
-                                                                reps = reps)
-        k <- k + 1
-        treesim_trees <- TreeSim::sim.bd.taxa(n = tip_numbers[j],
-                                                         lambda = speciation_rates[i],
-                                                         mu = extinction_rates[i],
-                                                         numbsim = reps) 
-        for(t in 1:length(treesim_trees)) {
-            speciation_test_1_df[t, k] <- max(ape::node.depth.edgelength(treesim_trees[[t]]))
-        }
-        k <- k + 1
-    }
- 
+# run the main function
+gsa_spt_nds <- treeduckenValidation::gsa_test_data_generation(sbr,
+                                                               sdr,
+                                                               num_tips,
+                                                               reps = reps)
+
+
+plot_df <- format_gsa_test_df(gsa_spt_nds, sbr)
+
+ggplot2::ggplot(data = plot_df, 
+                ggplot2::aes(x = key, y = value, fill = simulator)) + 
+    ggplot2::geom_boxplot() +
+    ggplot2::theme_bw() +
+    khroma::scale_fill_bright() +
+    ggplot2::xlab("Speciation rate") + 
+    ggplot2::ylab("Tree depth")
     
-}
-treesim_trees <- NULL
 ```
 
+### SSA tests
+
 ```{r}
-colnames(speciation_test_1_df) <- c("spec_rate 2.0, 40 tips - TD",
-                                    "spec_rate 2.0, 40 tips - TreeSim",
-                                    "spec_rate 2.0, 400 tips - TD",
-                                    "spec_rate 2.0, 400 tips - TreeSim",
-                                    "spec_rate 4.0, 40 tips - TD",
-                                    "spec_rate 4.0, 40 tips - TreeSim",
-                                    "spec_rate 4.0, 400 tips - TD",
-                                    "spec_rate 4.0, 400 tips - TreeSim")
-speciation_test_1_df <- as.data.frame(speciation_test_1_df)
-melted_df <- reshape2::melt(speciation_test_1_df)
-spec_rate_and_tips <- rep(c("2.0, 40",
-                             "2.0, 400",
-                             "4.0, 40",
-                             "4.0, 400"),
-                             each = nrow(melted_df)/4, length.out = nrow(melted_df))
+sim_time <- 1.0
 
-melted_df$"spec_rate_and_tips" <- factor(spec_rate_and_tips)
+ssa_spt_tips <- ssa_test_data_generation(sbr,
+                                        sdr,
+                                        time = sim_time,
+                                        reps = reps)
 
 
-simulator_type <- rep(c("treeducken", "TreeSim"), each = nrow(melted_df)/8)
-length(simulator_type)
-simulator_type <- c(simulator_type, simulator_type, simulator_type, simulator_type)
-melted_df$"simulator" <- simulator_type
+ssa_tidy_df <- format_ssa_test(ssa_spt_tips, sbr)
+
+ssa_exp_tidy_df <- get_ssa_expected_values(sbr,
+                                       sdr,
+                                       sim_time,
+                                       ssa_tidy_df)
+
+
+
+ggplot2::ggplot(data = ssa_tidy_df, 
+                ggplot2::aes(x = key, y = value)) + 
+    ggplot2::geom_boxplot() +
+    ggplot2::geom_point(data = ssa_exp_tidy_df,
+                ggplot2::aes(x = key,
+                            y = value,
+                            col = "red",
+                            size = 0.5)) + 
+    ggplot2::theme_bw() +
+    khroma::scale_fill_bright() +
+    ggplot2::xlab("Speciation rate") + 
+    ggplot2::ylab("Number of leaves") + 
+    guides(col=FALSE, size=FALSE)
+    
+    
 ```
 
+
+## Testing Locus tree simulation
+
 ```{r}
+num_tips <- 20
+gbr <- seq(from = 1, to = 10) / 5
+gdr <- gbr / 4
+loctr_tips <- locus_tree_test(gbr, gdr, num_tips, reps)
+
+loctr_tips_tidy_df <- format_loctree_test(loctr_tips, gbr)
+loct_expected_tidy_df <- get_loctr_expected_values(gbr,
+                                                   gdr,
+                                                   num_tips,
+                                                   loctr_tips,
+                                                   loctr_tips_tidy_df)
+
+ggplot2::ggplot(data = loctr_tips_tidy_df, 
+                ggplot2::aes(x = key, y = value)) + 
+    ggplot2::geom_boxplot() +
+    ggplot2::geom_point(data = loct_expected_tidy_df,
+                ggplot2::aes(x = key,
+                            y = value,
+                            col = "red",
+                            size = 0.5)) + 
+    ggplot2::theme_bw() +
+    khroma::scale_fill_bright() +
+    ggplot2::xlab("Gene Birte Rate") + 
+    ggplot2::ylab("Number of leaves") + 
+    guides(col=FALSE, size = FALSE)
+    
+# make into dataframe
+# name columns
+# plot
+```
+
+## Testing Gene tree simulation
+
+### Multi-species coalescent
+```{r}
+gt_reps <- reps
+test_reps <- 10
+tips <- rep(25, times = test_reps)
+
+theta <- rlnorm(n = test_reps, meanlog = 1.4, sdlog = 0.004)
+
+gt_tmrcas <- gene_tree_msc_test(theta, tips, gt_reps = gt_reps, test_reps = test_reps)
+
+gt_tidy_df <- format_gene_tree_df(gt_tmrcas, theta)
+# expected tmrca (might nee other stuff?)
+ggplot2::ggplot(data = gt_tidy_df, 
+                ggplot2::aes(x = key, y = value)) + 
+    ggplot2::geom_boxplot() +
+    ggplot2::theme_bw() +
+    khroma::scale_fill_bright() +
+    ggplot2::xlab("Population size") + 
+    ggplot2::ylab("Time to most recent common ancestor") + 
+    guides(col=FALSE, size = FALSE) + 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+### Multi-locus coalescent
+
+
+## Testing cophylogenetic simulation
+
+
+### Host tree tests
+
+```{r}
+lambda_h <- seq(from = 1, to = 10) / 10
+lambda_c <- 1.0
+mu_h <- (lambda_h + lambda_c) / 2
+
+ht_test_tips <- host_tree_test(hbr = lambda_h,
+                                hdr = mu_h,
+                                cosp_rate = lambda_c,
+                                reps = reps,
+                                time = sim_time)
+
+
+ht_test_tidy_df <- format_host_test_data(ht_test_tips, lambda_h)
+
+
+ht_expected_tips_tidy_df <- get_host_expected_values(lambda_h,
+                                     lambda_c,
+                                     mu_h,
+                                     sim_time,
+                                     ht_test_tidy_df)
+
 library(ggplot2)
-ggplot(data = melted_df, aes(x = factor(spec_rate_and_tips), y = value, fill = simulator)) + geom_violin() + theme_bw() + xlab("Speciation Rate and Tip Number") + ylab("Node Depth") )
+library(khroma)
+ggplot2::ggplot(data = ht_test_tidy_df, 
+                ggplot2::aes(x = key, y = value)) + 
+    ggplot2::geom_boxplot() +
+    ggplot2::geom_point(data = ht_expected_tips_tidy_df,
+                ggplot2::aes(x = key,
+                            y = value,
+                            col = "red",
+                            size = 0.5)) + 
+    ggplot2::theme_bw() +
+    khroma::scale_fill_bright() +
+    ggplot2::xlab("Host speciation rate") + 
+    ggplot2::ylab("Number of leaves") + 
+    guides(col=FALSE, size=FALSE)
+    
+    
 ```
 
-### Set time
+### Symbiont tree tests
 
 
 ```{r}
-reps <- 1000
-speciation_rates <- c(2.0, 4.0)
-extinction_rates <- speciation_rates / 2
-sim_age <- c(2.0, 4.0)
-speciation_test_2_df <- matrix(nrow = reps, ncol = 8)
-k <- 1
-for(i in 1:length(speciation_rates)){
-    for(j in 1:length(sim_age)) {
-        speciation_test_2_df[1:reps,k] <- get_sptree_leaf_number_dist_time(speciation_rates[i],
-                                                                extinction_rates[i],
-                                                                time = sim_age[j],
-                                                                reps = reps)
-        k <- k + 1
-        treesim_trees <- TreeSim::sim.bd.age(age = sim_age[j],
-                                              lambda = speciation_rates[i],
-                                              mu = extinction_rates[i],
-                                              numbsim = reps) 
-        for(t in 1:length(treesim_trees)) {
-            speciation_test_2_df[t, k] <- length(treesim_trees[[t]][2])
-        }
-        k <- k + 1
-    }
-}
-treesim_trees <- NULL
-```
+lambda_c <- 0.5
+lambda_s <- seq(from = 1, to = 3) / 1.0
+mu_s <- lambda_s / 4
+symbt_test_tips <- symb_tree_test(cosp_rate = lambda_c,
+                                  sbr = lambda_s,
+                                  sdr = mu_s,
+                                  reps = reps,
+                                  time = sim_time)
 
-```{r}
-colnames(speciation_test_2_df) <- c("spec_rate 2.0, time 2.0 - TD",
-                                    "spec_rate 2.0, time 2.0 - TreeSim",
-                                    "spec_rate 2.0, time 4.0 - TD",
-                                    "spec_rate 2.0, time 4.0 - TreeSim",
-                                    "spec_rate 4.0, time 2.0 - TD",
-                                    "spec_rate 4.0, time 2.0 - TreeSim",
-                                    "spec_rate 4.0, time 4.0 - TD",
-                                    "spec_rate 4.0, time 4.0 - TreeSim")
-speciation_test_1_df <- as.data.frame(speciation_test_2_df)
-melted_df_2 <- reshape2::melt(speciation_test_2_df)
-spec_rate_and_tips <- rep(c("2.0, 2.0",
-                             "2.0, 4.0",
-                             "4.0, 2.0",
-                             "4.0, 4.0"),
-                             each = nrow(melted_df_2)/4, length.out = nrow(melted_df_2))
-
-melted_df_2$"spec_rate_and_tips" <- factor(spec_rate_and_tips)
-
-
-simulator_type <- rep(c("treeducken", "TreeSim"), each = nrow(melted_df)/8)
-length(simulator_type)
-simulator_type <- c(simulator_type, simulator_type, simulator_type, simulator_type)
-melted_df_2$"simulator" <- simulator_type
-```
-
-### Locus Tree Test
-```{r}
-species_tree_depth <- 2.0
-mu <- 0.5
-lambda <- 1.0
-gene_birth_rates <- c(0.1, 0.15, 0.2, 0.25, 0.3)
-gene_death_rates <- c(0.05, 0.075, 0.01, 0.125, 0.15)
-replicate_loci <- 1000
-locus_tree_test_df <- matrix(nrow = replicate_loci, ncol = length(gene_death_rates) * length(gene_birth_rates))
-k <- 1
-for(i in 1:length(gene_birth_rates)) {
-    for(j in 1:length(gene_death_rates)) {
-        locus_tree_test_df[1:replicate_loci, k] <- treeduckenValidation::compare_locustree_mean_leaf_number(
-                                                                 gene_birth_rate = gene_birth_rates[i],
-                                                                 gene_death_rate = gene_death_rates[j],
-                                                                 fixed_depth = species_tree_depth,
-                                                                 reps = replicate_loci)
-        k <- k + 1
+symbt_expected_tips <- matrix(nrow = reps, ncol = length(lambda_s))
+for(i in seq_len(length(lambda_s))) {
+    for(j in 1:reps) {
+        symbt_expected_tips[j, i] <- treeducken::calculate_expected_leaves_locustree(
+                                            t = sim_time,
+                                            dup_rate = lambda_s[i],
+                                            loss_rate = mu_s[i],
+                                            num_species = symbt_test_tips[j, i + length(lambda_s)])
+        if(is.infinite(symbt_expected_tips[j, i]))
+            symbt_expected_tips[j, i] <- NA
     }
 }
 
-```
 
 
+symbt_test_tips_df <- as.data.frame(symbt_test_tips[,1:length(lambda_s)])
+symbt_column_namer <- function(lambda_s) {
+    paste("lambda_s=", lambda_s)
+}
+colnames(symbt_test_tips_df) <- symbt_column_namer(lambda_s)
+symbt_test_tips_tidy_df <- tidyr::gather(symbt_test_tips_df)
+symbt_test_tips_tidy_df$type <- rep("observed", times = nrow(symbt_test_tips_tidy_df))
 
+symbt_expected_tips_df <- as.data.frame(symbt_expected_tips)
+colnames(symbt_expected_tips_df) <- colnames(symbt_test_tips_df)
+symbt_expected_tips_df <- tidyr::gather(symbt_expected_tips_df)
+symbt_expected_tips_df$type <- rep("expected", times = nrow(symbt_expected_tips_df))
+symbt_plot_df <- rbind(symbt_test_tips_tidy_df, symbt_expected_tips_df)
 
-```{r}
-colnames(speciation_test_2_df) <- c("spec_rate 2.0, time 2.0 - TD",
-                                    "spec_rate 2.0, time 2.0 - TreeSim",
-                                    "spec_rate 2.0, time 4.0 - TD",
-                                    "spec_rate 2.0, time 4.0 - TreeSim",
-                                    "spec_rate 4.0, time 2.0 - TD",
-                                    "spec_rate 4.0, time 2.0 - TreeSim",
-                                    "spec_rate 4.0, time 4.0 - TD",
-                                    "spec_rate 4.0, time 4.0 - TreeSim")
-speciation_test_1_df <- as.data.frame(speciation_test_2_df)
-melted_df_2 <- reshape2::melt(speciation_test_2_df)
-spec_rate_and_tips <- rep(c("2.0, 2.0",
-                             "2.0, 4.0",
-                             "4.0, 2.0",
-                             "4.0, 4.0"),
-                             each = nrow(melted_df_2)/4, length.out = nrow(melted_df_2))
-
-melted_df_2$"spec_rate_and_tips" <- factor(spec_rate_and_tips)
-
-
-simulator_type <- rep(c("treeducken", "TreeSim"), each = nrow(melted_df)/8)
-length(simulator_type)
-simulator_type <- c(simulator_type, simulator_type, simulator_type, simulator_type)
-melted_df_2$"simulator" <- simulator_type
-```
-
-
-```{python}
-
+library(ggplot2)
+library(khroma)
+ggplot2::ggplot(data = symbt_plot_df, 
+                ggplot2::aes(x = key, y = value, fill = type)) + 
+    ggplot2::geom_boxplot() +
+    ggplot2::theme_bw() +
+    khroma::scale_fill_bright() +
+    ggplot2::xlab("Symbiont speciation rate") + 
+    ggplot2::ylab("Number of leaves")
 ```

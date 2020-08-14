@@ -1,27 +1,39 @@
 gsa_test_data_generation <- function(sbr, sdr, number_tips, reps) {
     # simulate reps with treeducken
     rates_vec <- cbind(sbr, sdr)
-    gsa_sptree_tips <- matrix(nrow = 10000, ncol = rates_vec * 2)
+    gsa_sptree_node_depths <- matrix(nrow = reps, ncol = nrow(rates_vec) * 2)
     for(i in seq_len(nrow(rates_vec))) {
         td_species_trees <- treeducken::sim_sptree_bdp(sbr = rates_vec[i, 1],
                                                    sdr = rates_vec[i, 2],
                                                    n_tips = number_tips,
-                                                   numbsim = reps,
-                                                   time_to_sim = time)
+                                                   numbsim = reps)
         ts_species_trees <- TreeSim::sim.bd.taxa(n = number_tips,
                                                 numbsim = reps,
                                                 lambda =  rates_vec[i, 1],
                                                 mu = rates_vec[i, 2])
         # calculate number of host tips
-        gsa_sptree_tips[, i] <- ape::Ntip.multiPhylo(td_species_trees)
-        gsa_sptree_tips[, i + nrow(rates_vec)] <- ape::Ntip.multiPhylo(ts_species_trees)
+        multiphy_calc_edges <- function(x) max(ape::node.depth.edgelength(x))
+        gsa_sptree_node_depths[, i] <- sapply(td_species_trees, multiphy_calc_edges)
+        gsa_sptree_node_depths[, i + nrow(rates_vec)] <- sapply(ts_species_trees, multiphy_calc_edges)
+
     }
     # return a dataframe of host tips (reps x (length(hbr) + length(hdr))
-    gsa_sptree_tips
+    gsa_sptree_node_depths
 }
 
-gsa_test_plot <- function(gsa_test_dataframe) {
+format_gsa_test_df <- function(gsa_spt_nds, sbr) {
     # plot boxplots? with the TreeSim plots next to the treeducken ones
+    gsa_spt_nds_df <- as.data.frame(gsa_spt_nds)
+    column_namer <- function(spec_rate, sim = "Treeducken") {
+        paste("lambda=", spec_rate, ",", sim, sep="")
+    }
+    colnames(gsa_spt_nds_df) <- c(column_namer(sbr),
+                                  column_namer(sbr, sim = "TreeSim"))
+    tidy_df <- tidyr::gather(gsa_spt_nds_df)
+    split_names <- stringr::str_split(tidy_df$key, ",", simplify = TRUE)
+    tidy_df$key <- split_names[,1]
+    tidy_df$simulator <- split_names[,2]
+    tidy_df
 }
 
 
@@ -30,19 +42,38 @@ ssa_test_data_generation <- function(sbr, sdr, time, reps) {
     # calculate number of tips
     # return a dataframe (10 columns, 10000 rows)
     rates_vec <- cbind(sbr, sdr)
-    ssa_sptree_node_depths <- matrix(nrow = 10000, ncol = rates_vec)
+    ssa_sptree_node_depths <- matrix(nrow = reps, ncol = nrow(rates_vec))
     for(i in seq_len(nrow(rates_vec))) {
         trees <- treeducken::sim_sptree_bdp_time(sbr = rates_vec[i, 1],
                                                  sdr = rates_vec[i, 2],
                                                  numbsim = reps,
                                                  t = time)
         # calculate number of host tips
-        ssa_sptree_node_depths[, i] <- max(ape::node.depth.edgelength(trees))
+        ssa_sptree_node_depths[, i] <- ape::Ntip.multiPhylo(trees)
+
     }
     # return a dataframe of host tips (reps x (length(hbr) + length(hdr))
     ssa_sptree_node_depths
 }
 
-ssa_test_plot <- function(ssa_test_dataframe, expectation) {
-    # plot with lines indicating the expectation
+format_ssa_test <- function(ssa_spt_tips, sbr) {
+    ssa_spt_tips_df <- as.data.frame(ssa_spt_tips)
+    ssa_column_namer <- function(spec_rate) {
+        paste("lambda=", spec_rate)
+    }
+    colnames(ssa_spt_tips_df) <- ssa_column_namer(sbr)
+    tidyr::gather(ssa_spt_tips_df)
+}
+
+get_ssa_expected_values <- function(sbr, sdr, sim_time, ssa_spt_tips_tidy_df) {
+    ssa_expected_tips <- vector(length = length(sbr))
+    for(i in seq_len(length(sbr))) {
+        ssa_expected_tips[i] <- treeducken::calculate_expected_leaves_sptree(sbr[i],
+                                                                             sdr[i],
+                                                                             sim_time)
+    }
+    ssa_exp_tips_df <- as.data.frame(t(ssa_expected_tips))
+    colnames(ssa_exp_tips_df) <- unique(ssa_spt_tips_tidy_df[,1])
+    tidyr::gather(ssa_exp_tips_df)
+
 }
