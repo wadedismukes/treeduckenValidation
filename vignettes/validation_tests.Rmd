@@ -16,7 +16,7 @@ The following are validation tests of the `treeducken` package with accompanying
 
 ### GSA tests
 
-```{r}
+```{r GSA test}
 # first decide on parameters
 sbr <- seq(from= 1, to = 6)
 sdr <- sbr / 4
@@ -43,7 +43,7 @@ ggplot2::ggplot(data = plot_df,
 
 ### SSA tests
 
-```{r}
+```{r SSA test}
 sim_time <- 1.0
 
 ssa_spt_tips <- ssa_test_data_generation(sbr,
@@ -73,7 +73,7 @@ ggplot2::ggplot(data = ssa_tidy_df,
     khroma::scale_fill_bright() +
     ggplot2::xlab("Speciation rate") + 
     ggplot2::ylab("Number of leaves") + 
-    guides(col=FALSE, size=FALSE)
+    ggplot2::guides(col=FALSE, size=FALSE)
     
     
 ```
@@ -81,9 +81,9 @@ ggplot2::ggplot(data = ssa_tidy_df,
 
 ## Testing Locus tree simulation
 
-```{r}
+```{r locus tree test}
 num_tips <- 20
-gbr <- seq(from = 1, to = 10) / 5
+gbr <- seq(from = 1, to = 5) / 5
 gdr <- gbr / 4
 loctr_tips <- locus_tree_test(gbr, gdr, num_tips, reps)
 
@@ -99,15 +99,16 @@ ggplot2::ggplot(data = loctr_tips_tidy_df,
     ggplot2::geom_boxplot() +
     ggplot2::geom_point(data = loct_expected_tidy_df,
                 ggplot2::aes(x = key,
-                            y = value,
+                            y = log(value),
                             col = "red",
                             size = 0.5)) + 
     ggplot2::theme_bw() +
     khroma::scale_fill_bright() +
     ggplot2::xlab("Gene Birte Rate") + 
     ggplot2::ylab("Number of leaves") + 
-    guides(col=FALSE, size = FALSE)
+    ggplot2::guides(col = FALSE, size = FALSE)
     
+# make into dataframe
 # make into dataframe
 # name columns
 # plot
@@ -116,38 +117,61 @@ ggplot2::ggplot(data = loctr_tips_tidy_df,
 ## Testing Gene tree simulation
 
 ### Multi-species coalescent
-```{r}
+```{r MSC tests}
 gt_reps <- reps
-test_reps <- 10
 tips <- rep(25, times = test_reps)
 
-theta <- rlnorm(n = test_reps, meanlog = 1.4, sdlog = 0.004)
+ne <- c(10, 100, 1000, 10000, 100000, 1000000)
+test_reps <- length(ne)
 
-gt_tmrcas <- gene_tree_msc_test(theta, tips, gt_reps = gt_reps, test_reps = test_reps)
+gt_tmrcas <- gene_tree_msc_test(theta = ne,
+                                tips,
+                                gt_reps = gt_reps,
+                                test_reps = test_reps)
 
-gt_tidy_df <- format_gene_tree_df(gt_tmrcas, theta)
+gt_tidy_df <- format_gene_tree_df(gt_tmrcas, ne)
 # expected tmrca (might nee other stuff?)
-ggplot2::ggplot(data = gt_tidy_df, 
-                ggplot2::aes(x = key, y = value)) + 
+ggplot2::ggplot(data = gt_tidy_df,
+                ggplot2::aes(x = key, y = log(value))) +
     ggplot2::geom_boxplot() +
     ggplot2::theme_bw() +
     khroma::scale_fill_bright() +
-    ggplot2::xlab("Population size") + 
-    ggplot2::ylab("Time to most recent common ancestor") + 
-    guides(col=FALSE, size = FALSE) + 
+    ggplot2::xlab("Population size") +
+    ggplot2::ylab("Time to most recent common ancestor") +
+    ggplot2::guides(col = FALSE, size = FALSE) +
     theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 ```
 
 ### Multi-locus coalescent
 
+```{r MLC tests}
+gt_reps <- reps
+gt_mlc_tmrcas <- gene_tree_mlc_test(sbr = 1.0,
+                                    popsize = ne,
+                                    gbr = 0.2,
+                                    locus_tree_reps = 10,
+                                    gene_tree_reps = gt_reps,
+                                    test_reps = test_reps)
+gt_mlc_tidy_df <- format_gene_tree_df(gt_mlc_tmrcas, theta)
+# expected tmrca (might nee other stuff?)
+ggplot2::ggplot(data = gt_mlc_tidy_df,
+                ggplot2::aes(x = key, y = log(value))) +
+    ggplot2::geom_boxplot() +
+    ggplot2::theme_bw() +
+    khroma::scale_fill_bright() +
+    ggplot2::xlab("Population size") +
+    ggplot2::ylab("Time to most recent common ancestor") +
+    ggplot2::guides(col = FALSE, size = FALSE) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
+```
 ## Testing cophylogenetic simulation
 
 
 ### Host tree tests
 
-```{r}
+```{r host tree tests}
 lambda_h <- seq(from = 1, to = 10) / 10
 lambda_c <- 1.0
 mu_h <- (lambda_h + lambda_c) / 2
@@ -168,14 +192,12 @@ ht_expected_tips_tidy_df <- get_host_expected_values(lambda_h,
                                      sim_time,
                                      ht_test_tidy_df)
 
-library(ggplot2)
-library(khroma)
 ggplot2::ggplot(data = ht_test_tidy_df, 
                 ggplot2::aes(x = key, y = value)) + 
     ggplot2::geom_boxplot() +
     ggplot2::geom_point(data = ht_expected_tips_tidy_df,
                 ggplot2::aes(x = key,
-                            y = value,
+                            y = value,ß
                             col = "red",
                             size = 0.5)) + 
     ggplot2::theme_bw() +
@@ -190,7 +212,7 @@ ggplot2::ggplot(data = ht_test_tidy_df,
 ### Symbiont tree tests
 
 
-```{r}
+```{r symbiont tree tests}
 lambda_c <- 0.5
 lambda_s <- seq(from = 1, to = 3) / 1.0
 mu_s <- lambda_s / 4
@@ -229,8 +251,6 @@ symbt_expected_tips_df <- tidyr::gather(symbt_expected_tips_df)
 symbt_expected_tips_df$type <- rep("expected", times = nrow(symbt_expected_tips_df))
 symbt_plot_df <- rbind(symbt_test_tips_tidy_df, symbt_expected_tips_df)
 
-library(ggplot2)
-library(khroma)
 ggplot2::ggplot(data = symbt_plot_df, 
                 ggplot2::aes(x = key, y = value, fill = type)) + 
     ggplot2::geom_boxplot() +

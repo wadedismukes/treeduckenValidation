@@ -14,9 +14,12 @@ gene_tree_msc_test <- function(theta, tips, gt_reps, test_reps) {
         gts <- treeducken::sim_multispecies_coal(species_tree = sptree[[i]],
                                                  ne = theta[i],
                                                  num_sampled_individuals = 1,
-                                                 num_genes = gt_reps)
+                                                 mutation_rate = 1e-9,
+                                                 generation_time = 1e-6,
+                                                 num_genes = gt_reps,
+                                                 rescale = TRUE)
         gts_summary_stats <- treeducken::genetree_summary_stat(gts,
-                                                         locus_tree_indx = 1)
+                                                         container_tree_indx = 1)
         tmrcas[, i] <- gts_summary_stats$tmrca
     }
     tmrcas
@@ -44,15 +47,16 @@ gene_tree_mlc_test <- function(sbr,
                                gene_tree_reps,
                                test_reps) {
     # draw uniform(20, 200)
-    tips <- runif(test_reps, 20, 200)
-
+    tips <- 50
+    # sim sptree with GSA set sbr
     # sim sptree with GSA set sbr
     sptree <- treeducken::sim_sptree_bdp(sbr = 1.0,
-                                         sdr = 0.0,
-                                         num_tips = tips,
-                                         numbsim = test_reps)
-    for(i in seq_len(length(sptree))) {
-    # simulate locus tree with gbr locus_tree_reps times
+                                        sdr = 0.0,
+                                        n_tips = tips,
+                                        numbsim = test_reps)
+    tmrcas <- matrix(nrow = gene_tree_reps, ncol = locus_tree_reps * test_reps)
+    for(i in seq_len(test_reps)) {
+        # simulate locus tree with gbr locus_tree_reps times
         loc_trees <- treeducken::sim_locustree_bdp(species_tree = sptree[[i]],
                                                 gbr = gbr,
                                                 gdr = 0.0,
@@ -60,10 +64,21 @@ gene_tree_mlc_test <- function(sbr,
                                                 num_loci = locus_tree_reps)
         # split each loocus tree into subtrees
 
+        for(j in seq_len(locus_tree_reps)) {
+            gene_trees <- treeducken::sim_multilocus_coal(
+                locus_tree = loc_trees[[j]],
+                effective_pop_size = popsize[i],
+                mutation_rate = 1e-9,
+                generation_time = 1e-6,
+                num_reps = gene_tree_reps)
+            mtrees <- treeducken::retrieve_parent_genetrees(gene_trees)
+            col_indx <- j + (test_reps * (i - 1))
+            tmrcas[, col_indx] <- unlist(
+                                        lapply(mtrees,
+                                            function(x)
+                                            max(ape::node.depth.edgelength(x))))
+        }
     }
-    # split each loocus tree into subtrees
-    # simulate msc on each subtree with popsize set
-    # calculate summary stats for each locus tree set
-    # of subtrees compare with the expectation
+    tmrcas
 }
 

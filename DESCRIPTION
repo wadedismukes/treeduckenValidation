@@ -9,5 +9,8 @@ Description: More about what it does (maybe more than one line)
 License: GNU GPL v. 2.0
 Encoding: UTF-8
 Depends:
+    ggplot2,
+    khroma,
+    tidyr,
     treeducken
 LazyData: true
