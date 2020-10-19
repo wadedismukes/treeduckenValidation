@@ -13,6 +13,13 @@ The following are validation tests of the `treeducken` package with accompanying
 
 
 ## Testing species tree simulation 
+We validated each level of the three-tree model: species, locus, and gene.
+Species trees are able to be simulated using two different algorithms: the generalized sampling algorithm (GSA) \cite{Hartmann2010} and the simple sampling algorithm (SSA) \cite{Stadler2010}. 
+To test the former, we simulated under six different birth rates ($\lambda$) with death rates ($\mu$) set such that $\mu / \lambda = 0.25$ using 10000 replicate trees for each rate and 50 tips for each tree.
+The mean heights of the six different sets of birth and death rates were then compared to the mean heights of trees generated using {\tt TreeSim} \cite{Stadler2010}.
+To test the latter, we simulated under the same six birth and death rates from above with 10000 replicates for each rate, and a fixed tree height, $t = 2.0$. 
+The average number of tips for each set of birth and death rates were then compared to the theoretical expectation $E(N(t)) = 2e^{(\lambda - \mu) t}$ under this model \citep{mooers2012branch}.
+
 
 ### GSA tests
 
@@ -80,6 +87,9 @@ ggplot2::ggplot(data = ssa_tidy_df,
 
 
 ## Testing Locus tree simulation
+To determine if the locus trees were simulated correctly we tested that our trees had the expected number of tips. 
+This was done using six different gene birth rates ($\delta$) and gene loss rates ($l$) with a fixed species tree depth of 2.0, and $\lambda = 1.0$ and $\mu = 0.5$.
+The average number of tips for each set of gene birth and loss rates were then compared to the theoretical expectation: $E(N(t)) = \frac{n e^{(\delta - l)t}}{1 - m^{n - 2}}$ with $m = \frac{l (1 - e^{-(\delta - l)t})}{\delta - l e^{-(\delta - l)t}}$ with $n$ being the number of species on the species tree.
 
 ```{r locus tree test}
 num_tips <- 20
@@ -115,6 +125,17 @@ ggplot2::ggplot(data = loctr_tips_tidy_df,
 ```
 
 ## Testing Gene tree simulation
+
+Gene trees can be simulated using two different processes: the multispecies coalescent and the multilocus coalescent.
+The multispecies coalescent was tested by simulating 10 species trees each with $\lambda = 1.0$ and 25 tips.
+For each tree we then set population genetic parameters and simulated 100,000 gene trees.
+We set the generation time to $1\times10^-6$ time units per generation, and  $1\times10^-9$ mutations per generation.
+The generation time value assumes our species tree is in time units of millions of years with 1 generation per year.
+The mutation rate was chosen to be a biologically realistic value based on the mutation rates of primates given in \citet{Rannala1645}.
+The effective population size was varied along orders of magnitudes from 10 to one million individuals.
+We then compared the time to most recent common ancestor (TMRCA) was to the expected TMRCA \citep{Rannala1645}
+The multilocus coalescent was validated in a similar fashion, using the same parameters, but simulating under the multilocus coalescent.
+The simulated TMRCAs were then compared with the expectated TMRCA given in \citet{Rasmussen2012}.
 
 ### Multi-species coalescent
 ```{r MSC tests}
@@ -167,7 +188,20 @@ ggplot2::ggplot(data = gt_mlc_tidy_df,
 
 ```
 ## Testing cophylogenetic simulation
+We validated the host tree for the cophylogenetic birth-death model simulation.
+The symbiont tree and associations have no direct effect on the outcome of the host tree simulation directly. 
+Thus, we compared the host tree output with results from the constant rate birth-death process simulated using the SSA.
+Specifically, we compared the expected number of tips, $E(N(t))$, of the host tree over a time, $t$, with the theoretical expectation given by \citet{mooers2012branch}: $E(N(t)) = 2e^{(\lambda - \mu) t}$ where $\lambda$ and $\mu$ are the speciation and extinction rates of the constant rate birth-death process.
+Here the speciation rate is the sum of the host speciation rate ($\lambda_H$) and cospeciation rate ($\lambda_C$), and the extinction rate is the host extinction rate ($\mu_H$).  
+We simulated 10000 host-symbiont tree sets for $t = 2.0$ time units under 10 different host speciation rates, $\lambda_H = (0.1, 0.2, \ldots, 1.0)$, and a cospeciation rate of $\lambda_C = 1.0$.
+We set extinction rates set such that the turnover (i.e. $\mu / \lambda$) was kept constant between simulation scenarios.
 
+
+We validated the symbiont tree by comparing results with those found under the gene tree-species tree model.
+We used nine combinations of three different symbiont speciation rates and three different symbiont extinction rates with no host speciation or extinction, a cospeciation rate of $\lambda_C = 0.5$ and $t = 2.0$.
+We compared the average number of tips for each set of symbiont speciation and extinction rates to the theoretical expectation for the expected number of leaves of a locus tree: 
+\(E(N(t)) = \frac{n e^{\left(\lambda_S - \mu_S\right)t}}{1 - m^{n - 2}},\) with $m = \frac{\mu_S (1 - e^{-(\lambda_S - l)t})}{\lambda_S - l e^{-(\lambda_S - l)t}}$ % TAH: this should be formatted better. Also there is a ")" missing in the numerator of m
+with $n$ being the number of species on the host tree, and $\lambda_S$ and $\mu_S$ are the symbiont speciation and extinction rate respectively \citep{Mallo2016}. 
 
 ### Host tree tests
 
@@ -197,7 +231,7 @@ ggplot2::ggplot(data = ht_test_tidy_df,
     ggplot2::geom_boxplot() +
     ggplot2::geom_point(data = ht_expected_tips_tidy_df,
                 ggplot2::aes(x = key,
-                            y = value,ß
+                            y = value,
                             col = "red",
                             size = 0.5)) + 
     ggplot2::theme_bw() +
